@@ -43,10 +43,12 @@ func PostAreas(c *gin.Context) {
 
 	if err := c.BindJSON(&newArea); err != nil {
 		requestHelper.SendResponse(c, requestHelper.Response{Status: http.StatusBadRequest, Error: []string{"Could not parse JSON object"}})
+		return
 	}
 
 	if len(newArea.Boundary.Vertices) < 3 {
 		requestHelper.SendResponse(c, requestHelper.Response{Status: http.StatusBadRequest, Error: []string{"Area boundary should contain at least 3 vertices"}})
+		return
 	}
 
 	newArea.Id = int64(len(areas) + 1)
