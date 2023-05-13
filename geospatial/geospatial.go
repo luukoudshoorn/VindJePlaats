@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-
-	"oudshoorn.dev/mijnwoonplaats/requestHelper"
 )
 
 type coordinate struct {
@@ -42,12 +40,12 @@ func PostAreas(c *gin.Context) {
 	var newArea area
 
 	if err := c.BindJSON(&newArea); err != nil {
-		requestHelper.SendResponse(c, requestHelper.Response{Status: http.StatusBadRequest, Error: []string{"Could not parse JSON object"}})
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Could not parse JSON object"})
 		return
 	}
 
 	if len(newArea.Boundary.Vertices) < 3 {
-		requestHelper.SendResponse(c, requestHelper.Response{Status: http.StatusBadRequest, Error: []string{"Area boundary should contain at least 3 vertices"}})
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Area boundary should contain at least 3 vertices"})
 		return
 	}
 
