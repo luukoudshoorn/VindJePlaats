@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -21,7 +20,7 @@ import (
 
 var importFunctions = map[string]func([]byte){
 	"[0-9]+WPL[0-9]+.zip": ParseWoonplaatsen,
-	"[0-9]+PND[0-9]+.zip": parsePanden,
+	"[0-9]+PND[0-9]+.zip": ParsePanden,
 }
 
 func innerZipIterator(file *zip.File, action func([]byte)) {
@@ -43,7 +42,7 @@ func innerZipIterator(file *zip.File, action func([]byte)) {
 			fmt.Printf("Could not open inner zip %s: %s\n", file.Name, openErr)
 			return
 		}
-		buffer, err := ioutil.ReadAll(in)
+		buffer, err := io.ReadAll(in)
 		if err != nil {
 			fmt.Printf("Could not read inner zip %s into buffer: %s\n", file.Name, openErr)
 			return
@@ -65,7 +64,7 @@ func innerZipIterator(file *zip.File, action func([]byte)) {
 			return
 		}
 		defer reader.Close()
-		bytesValue, _ := ioutil.ReadAll(reader)
+		bytesValue, _ := io.ReadAll(reader)
 		go action(bytesValue)
 	}
 }
@@ -153,6 +152,15 @@ func grensFromGeometrie(Geometrie geometrie) bag.Grens {
 	return Grens
 }
 
+func puntFromGeometrie(Geometrie geometrie) bag.Coordinate {
+	var Coordinates []string = strings.Split(Geometrie.Punt.Point.Pos, " ")
+	lon, _ := strconv.ParseFloat(Coordinates[0], 64)
+	lat, _ := strconv.ParseFloat(Coordinates[1], 64)
+	return transform(tr, bag.Coordinate{Lon: lon, Lat: lat})
+}
+
+var alleWoonplaatsen []bag.Woonplaats
+
 func ParseWoonplaatsen(bytesValue []byte) {
 	var Woonplaatsen []bag.Woonplaats
 
@@ -161,6 +169,7 @@ func ParseWoonplaatsen(bytesValue []byte) {
 	// xmlFiles content into 'bagStand' which we defined above
 	xmlErr := xml.Unmarshal(bytesValue, &BagStand)
 	if xmlErr != nil {
+		fmt.Print("Error: ")
 		fmt.Println(xmlErr)
 		return
 	}
@@ -176,13 +185,14 @@ func ParseWoonplaatsen(bytesValue []byte) {
 
 		Woonplaatsen = append(Woonplaatsen, Woonplaats)
 	}
+	alleWoonplaatsen = append(alleWoonplaatsen, Woonplaatsen...)
 
 	fmt.Printf("Aantal woonplaatsen geïmporteerd: %d\n", len(Woonplaatsen))
 }
 
 var allePanden []bag.Pand
 
-func parsePanden(bytesValue []byte) {
+func ParsePanden(bytesValue []byte) {
 	var Panden []bag.Pand
 
 	var BagStand bagStand
@@ -198,10 +208,36 @@ func parsePanden(bytesValue []byte) {
 		var Pand bag.Pand
 		Pand.Id = Stand.BagObject.Pand.Identificatie.Id
 		Pand.Omtrek = grensFromGeometrie(Stand.BagObject.Pand.Geometrie)
-
+		//Pand.Center = bag.PolygonCenter(Pand.Omtrek.Exterior[0])
 		Panden = append(Panden, Pand)
 	}
 	allePanden = append(allePanden, Panden...)
 
 	fmt.Printf("Aantal Panden geïmporteerd: %d\n", len(allePanden))
+}
+
+var alleVerblijfsobjecten []bag.Verblijfsobject
+
+func ParseVerblijfsobjecten(bytesValue []byte) {
+	var Verblijfsobjecten []bag.Verblijfsobject
+
+	var BagStand bagStand
+	// we unmarshal our byteArray which contains our
+	// xmlFiles content into 'bagStand' which we defined above
+	xmlErr := xml.Unmarshal(bytesValue, &BagStand)
+	if xmlErr != nil {
+		fmt.Println(xmlErr)
+		return
+	}
+
+	for _, Stand := range BagStand.StandBestand.Stand {
+		var Verblijfsobject bag.Verblijfsobject
+		Verblijfsobject.Id = Stand.BagObject.Verblijfsobject.Identificatie.Id
+		Verblijfsobject.Locatie = puntFromGeometrie(Stand.BagObject.Verblijfsobject.Geometrie)
+		Verblijfsobject.PandId = Stand.BagObject.Verblijfsobject.MaaktDeelUitVan.PandRef.Id
+		Verblijfsobjecten = append(Verblijfsobjecten, Verblijfsobject)
+	}
+	alleVerblijfsobjecten = append(alleVerblijfsobjecten, Verblijfsobjecten...)
+
+	fmt.Printf("Aantal Verblijfsobjecten geïmporteerd: %d\n", len(alleVerblijfsobjecten))
 }

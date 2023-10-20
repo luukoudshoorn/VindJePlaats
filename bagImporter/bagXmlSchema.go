@@ -37,8 +37,9 @@ type bagStand struct {
 		} `xml:"inhoud"`
 		Stand []struct {
 			BagObject struct {
-				Woonplaats woonplaats `xml:"Woonplaats"`
-				Pand       pand       `xml:"Pand"`
+				Woonplaats      woonplaats      `xml:"Woonplaats"`
+				Pand            pand            `xml:"Pand"`
+				Verblijfsobject verblijfsobject `xml:"Verblijfsobject"`
 			} `xml:"bagObject"`
 		} `xml:"stand"`
 	} `xml:"standBestand"`
@@ -56,6 +57,34 @@ type woonplaats struct {
 	Documentdatum  string    `xml:"documentdatum"`
 	Documentnummer string    `xml:"documentnummer"`
 	Voorkomen      voorkomen `xml:"Voorkomen"`
+}
+
+type verblijfsobject struct {
+	Text               string `xml:",chardata"`
+	HeeftAlsHoofdadres struct {
+		NummeraanduidingRef struct {
+			Text   string `xml:",chardata"`
+			Domein string `xml:"domein,attr"`
+		} `xml:"NummeraanduidingRef"`
+	} `xml:"heeftAlsHoofdadres"`
+	Voorkomen     voorkomen `xml:"Voorkomen"`
+	Identificatie struct {
+		Id     int64  `xml:",chardata"`
+		Domein string `xml:"domein,attr"`
+	} `xml:"identificatie"`
+	Geometrie       geometrie `xml:"geometrie"`
+	Gebruiksdoel    string    `xml:"gebruiksdoel"`
+	Oppervlakte     string    `xml:"oppervlakte"`
+	Status          string    `xml:"status"`
+	Geconstateerd   string    `xml:"geconstateerd"`
+	Documentdatum   string    `xml:"documentdatum"`
+	Documentnummer  string    `xml:"documentnummer"`
+	MaaktDeelUitVan struct {
+		PandRef struct {
+			Id     int64  `xml:",chardata"`
+			Domein string `xml:"domein,attr"`
+		} `xml:"PandRef"`
+	} `xml:"maaktDeelUitVan"`
 }
 
 type pand struct {
@@ -99,6 +128,13 @@ type geometrie struct {
 		} `xml:"MultiSurface"`
 	} `xml:"multivlak"`
 	Polygon gmlPolygon `xml:"Polygon"`
+	Punt    struct {
+		Point struct {
+			SrsName      string `xml:"srsName,attr"`
+			SrsDimension string `xml:"srsDimension,attr"`
+			Pos          string `xml:"pos"`
+		} `xml:"Point"`
+	} `xml:"punt"`
 }
 
 type gmlPolygon struct {
